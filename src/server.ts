@@ -74,12 +74,11 @@ server.registerTool(
     inputSchema: {
       after: date.optional().describe("Lấy bài từ ngày này (YYYY-MM-DD). Bỏ trống = mặc định 15 ngày gần nhất"),
       before: date.optional().describe("Đến ngày này (YYYY-MM-DD), bỏ trống = đến nay"),
-      concurrency: z.number().int().min(1).max(20).optional().describe("Số trang cào đồng thời (mặc định 8)"),
     },
   },
-  async ({ after, before, concurrency }) => {
+  async ({ after, before }) => {
     try {
-      return reply(await crawlPosts({ after, before, concurrency }));
+      return reply(await crawlPosts({ after, before }));
     } catch (e) {
       return fail(e);
     }
@@ -90,20 +89,16 @@ server.registerTool(
   "find_posts",
   {
     description:
-      "Tìm kiếm và lọc bài viết đã lưu theo ngày, từ khóa và tags. Bỏ trống hoặc để mảng rỗng nếu không cần lọc.",
+      "Tìm kiếm và lọc bài viết đã lưu theo ngày và từ khóa. Bỏ trống hoặc để mảng rỗng `keywords: []` nếu không cần lọc từ khóa.",
     inputSchema: {
       after: date.optional().describe("Lọc bài từ ngày này (YYYY-MM-DD)"),
       before: date.optional().describe("Lọc bài đến ngày này (YYYY-MM-DD)"),
       keywords: z.array(z.string()).optional().describe("Mảng từ khóa cần lọc. Bỏ trống = lấy tất cả bài"),
-      tags: z
-        .array(z.string())
-        .optional()
-        .describe("Lọc theo tags: 'drl', 'ctxh', 'quiz', 'form', 'workshop', 'contest'"),
     },
   },
-  async ({ after, before, keywords, tags }) => {
+  async ({ after, before, keywords }) => {
     try {
-      return reply(await findPosts({ after, before, keywords, tags }));
+      return reply(await findPosts({ after, before, keywords }));
     } catch (e) {
       return fail(e);
     }

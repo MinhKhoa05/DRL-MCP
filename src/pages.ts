@@ -27,7 +27,7 @@ export async function listPages(): Promise<Page[]> {
 export async function addPages(
   items: Array<{ url: string; name?: string }>
 ): Promise<{ added: Page[]; updated: Page[]; total: number }> {
-  const pages = await loadPages();
+  const pages = await listPages();
   const added: Page[] = [];
   const updated: Page[] = [];
 
