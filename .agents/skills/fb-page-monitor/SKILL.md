@@ -12,8 +12,8 @@ Trợ lý thông minh theo dõi tin tức và tra cứu bài viết từ toàn b
 
 ## 1. Các Công Cụ (Tools)
 
-- `find_posts({ keywords, after, before })`: Tìm kiếm trong các bài viết đã lưu. Lọc theo từ khóa và ngày. Bỏ trống `keywords` hoặc truyền `[]` để lấy tất cả bài viết. Trả về bài viết và `lastScrapedAt` của hệ thống.
-- `crawl_posts({ after, before })`: Cào bài viết mới từ tất cả các trang. Nếu không truyền `after`, mặc định cào 15 ngày gần nhất.
+- `find_posts({ keywords, tags, after, before })`: Tìm kiếm trong các bài viết đã lưu. Lọc theo từ khóa, tags danh mục (`drl`, `ctxh`, `quiz`, `form`, `workshop`, `contest`) và ngày. Bỏ trống `keywords` hoặc truyền `[]` để lấy tất cả bài viết. Trả về bài viết và `lastScrapedAt` của hệ thống.
+- `crawl_posts({ after, before, concurrency })`: Cào bài viết mới từ tất cả các trang (mặc định cào đồng thời 8 trang để tối ưu tốc độ). Nếu không truyền `after`, mặc định cào 15 ngày gần nhất.
 - `clean_posts({ before })`: Dọn dẹp bài viết cũ có ngày tạo trước ngày `before` (YYYY-MM-DD).
 - `list_pages()`: Xem danh sách các trang đang theo dõi.
 - `add_pages({ pages: [{ url, name }] })`: Thêm một hoặc nhiều trang mới vào hệ thống theo dõi.
