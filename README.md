@@ -1,192 +1,170 @@
-# DRL-MCP (Facebook ĐRL Tracker MCP)
+# DRL-MCP
 
-MCP Server (stdio) hỗ trợ AI Agent theo dõi, cào bài viết và lọc tự động các hoạt động cộng **Điểm Rèn Luyện (ĐRL)** từ các Fanpage Facebook theo dõi. Hệ thống sử dụng kiến trúc lọc 2 lớp giúp phân tách sạch sẽ bài viết rèn luyện khỏi các bài truyền thông chung.
+DRL-MCP giúp việc tìm kiếm và tổng hợp thông tin hoạt động sinh viên từ nhiều trang Facebook trở nên thuận tiện hơn.
 
----
+Thay vì phải tự mở từng trang Facebook, đọc các bài đăng để tìm hoạt động có ghi nhận **Điểm Rèn Luyện (ĐRL)** hay **Công tác Xã hội (CTXH)**, việc của bạn chỉ cần là mở AI Agent lên và nhắn: *"Tìm cho mình các bài điểm rèn luyện mới"*. Agent sẽ tự động thu thập bài viết mới nhất từ toàn bộ các trang đang theo dõi, phân tích và tổng hợp lại danh sách hoạt động cho bạn.
 
-## Tính năng chính
+## 1. Tính năng chính
 
-- **Cào bài viết (Crawl posts)**: Tự động cào bài viết mới từ tất cả các Fanpage Facebook đang theo dõi (ẩn danh, đa luồng, không cần tài khoản cá nhân).
-- **Tìm kiếm & Tra cứu bài viết**: Lọc nhanh các bài viết có cộng Điểm Rèn Luyện (ĐRL), hoạt động trực tuyến, workshop, tình nguyện... theo từ khóa và mốc thời gian.
-- **Sẵn sàng nguồn dữ liệu phong phú**: Tích hợp sẵn danh sách **38 Fanpage trọng điểm của TDTU** (Khoa, Viện, Đoàn - Hội, CLB, CTHSSV...) thường xuyên có hoạt động ĐRL; bạn có thể dễ dàng bổ sung hoặc tùy chỉnh trực tiếp qua file `data/pages.json`.
-- **Dọn dẹp dữ liệu**: Hỗ trợ dọn dẹp các bài viết cũ để giải phóng bộ nhớ lưu trữ.
+- **Thu thập bài viết:** Lấy bài đăng từ danh sách trang Facebook trong `data/pages.json` (hiện có gần 40 trang thường có hoạt động của TDTU đã được mình tổng hợp sẵn, bạn có thể tùy chỉnh hoặc bổ sung thêm nếu muốn).
+- **Phân loại nội dung:** Lọc sơ bộ bài viết theo từ khóa liên quan đến ĐRL, CTXH và hoạt động sinh viên, sau đó lưu trữ riêng.
+- **Tìm kiếm linh hoạt:** Hỗ trợ tìm kiếm theo từ khóa, trang Facebook, khoảng thời gian và các điều kiện khác. Chức năng tìm kiếm ĐRL đã được kiểm thử; các trường hợp tìm kiếm ngoài phạm vi này chưa được kiểm thử đầy đủ.
+- **Trích xuất thông tin:** Rút gọn nội dung, ưu tiên thời gian, địa điểm, đối tượng, quyền lợi, hạn đăng ký và đường dẫn biểu mẫu.
+- **Lưu trữ cục bộ:** Sử dụng JSONL để lưu và tra cứu bài viết.
+- **AI Agent Skill:** Hướng dẫn Agent xác định từ khóa, lựa chọn công cụ và tổng hợp kết quả.
 
----
+## 2. Cài đặt và cấu hình
 
-## Kiến trúc & Luồng hoạt động
+### Cách 1: Thông qua AI Agent
 
-```mermaid
-flowchart TD
-    subgraph Sources["Nguồn dữ liệu (Facebook Pages)"]
-        FB["Fanpage theo dõi (Khoa, Viện, Đoàn - Hội, CLB, CTHSSV...)"]
-    end
+Mở AI Agent tại một thư mục bất kỳ và yêu cầu:
 
-    subgraph Crawler["Bộ thu thập & Lọc kép"]
-        GQL["fbgql (GraphQL Scraper ẩn danh)"]
-        POOL["Worker Pool (concurrency)"]
-        FILTER["Bộ lọc kép: RECOGNIZE_BENEFIT + RECOGNIZE_EVENT"]
-        GQL --> POOL --> FILTER
-    end
+> Cài đặt và cấu hình dự án DRL-MCP từ https://github.com/MinhKhoa05/DRL-MCP.git để sử dụng MCP Server và Skill.
 
-    subgraph Storage["Lưu trữ cục bộ (2 Lớp Lọc)"]
-        PAGES["data/pages.json (Danh sách Fanpage)"]
-        ALL["data/posts.jsonl (Tất cả bài viết)"]
-        DRL["data/drl_posts.jsonl (Database riêng cho bài ĐRL)"]
-    end
+Agent sẽ thực hiện các bước cần thiết để tải dự án, cài đặt và cấu hình MCP Server theo môi trường đang sử dụng. Cần cấp quyền truy cập Terminal và xác nhận các thao tác khi được yêu cầu.
 
-    subgraph Server["DRL-MCP Server (Node.js stdio)"]
-        TOOLS["Tools: find_posts, crawl_posts, clean_posts"]
-    end
+### Cách 2: Thủ công
 
-    subgraph Client["AI Client"]
-        AGENT["AI Agent (Antigravity, Claude, Cursor, VS Code)"]
-        USER["Người dùng / Sinh viên"]
-    end
-
-    FB --> GQL
-    PAGES --> GQL
-    POOL --> ALL
-    FILTER --> DRL
-    DRL --> TOOLS
-    ALL -. "allPosts: true" .-> TOOLS
-    TOOLS <--> AGENT <--> USER
-```
-
----
-
-## Yêu cầu môi trường
-
-- **Node.js** >= 22.6 (chạy trực tiếp TypeScript bằng `--experimental-strip-types`, không cần bước build).
-- **Python** 3.x có cài thư viện `fbgql` (`pip install fbgql`).
-
----
-
-## Cài đặt
+Clone dự án:
 
 ```bash
 git clone https://github.com/MinhKhoa05/DRL-MCP.git
 cd DRL-MCP
-npm install
-pip install fbgql
 ```
 
----
+**Yêu cầu:**
+- Node.js >= 22.6
+- Python 3
 
-## Cấu hình biến môi trường (Tùy chọn)
+Chạy script cài đặt (tự động kiểm tra và cài Node.js, Python, Git, `npm packages` và `fbgql` nếu thiếu):
 
-| Biến | Mặc định | Mô tả |
-| :--- | :--- | :--- |
-| `CRAWL_CONCURRENCY` | `8` | Số lượng trang cào đồng thời |
-| `POSTS_FILE` | `./data/posts.jsonl` | Đường dẫn file lưu trữ toàn bộ bài viết |
-| `DRL_POSTS_FILE` | `./data/drl_posts.jsonl` | Đường dẫn file lưu trữ riêng bài viết ĐRL |
-| `PAGES_FILE` | `./data/pages.json` | Đường dẫn file danh sách trang theo dõi |
-| `PYTHON_PATH` | `py` (Windows) / `python3` (Unix) | Đường dẫn đến file thực thi Python |
+| Hệ điều hành | Lệnh |
+|---|---|
+| Windows | `setup.bat` |
+| macOS / Linux | `./setup.sh` |
 
----
+### Cấu hình MCP
 
-## Chạy thử Server
+Thay `/absolute/path/to/DRL-MCP` bằng đường dẫn tuyệt đối đến thư mục dự án.
 
-```bash
-node --experimental-strip-types src/server.ts
-```
-
-Server giao tiếp JSON-RPC qua stdio (stdout/stdin), log sẽ in ra stderr.
-
----
-
-## Kết nối với AI Client
-
-### Antigravity / Claude Desktop / Cursor
-Thêm vào file cấu hình MCP (`mcp.json` hoặc `claude_desktop_config.json`):
+**Antigravity** (`~/.gemini/config/mcp_config.json`)
 
 ```json
 {
   "mcpServers": {
-    "fb-drl-tracker": {
+    "drl-mcp": {
       "command": "node",
       "args": ["--experimental-strip-types", "src/server.ts"],
-      "cwd": "/ĐƯỜNG_DẪN_TUYỆT_ĐỐI_TỚI/DRL-MCP"
+      "cwd": "/absolute/path/to/DRL-MCP",
+      "env": { "PYTHON_PATH": "python" }
     }
   }
 }
 ```
 
-### VS Code
-Thêm vào `.vscode/mcp.json`:
+**Claude Desktop / Cursor** (`claude_desktop_config.json` / `.cursor/mcp.json`)
+
+```json
+{
+  "mcpServers": {
+    "drl-mcp": {
+      "command": "node",
+      "args": ["--experimental-strip-types", "src/server.ts"],
+      "cwd": "/absolute/path/to/DRL-MCP"
+    }
+  }
+}
+```
+
+**GitHub Copilot / VS Code** (`.vscode/mcp.json`)
 
 ```json
 {
   "servers": {
-    "fb-drl-tracker": {
+    "drl-mcp": {
       "type": "stdio",
       "command": "node",
       "args": ["--experimental-strip-types", "src/server.ts"],
-      "cwd": "/ĐƯỜNG_DẪN_TUYỆT_ĐỐI_TỚI/DRL-MCP"
+      "cwd": "/absolute/path/to/DRL-MCP"
     }
   }
 }
 ```
 
----
+Sau khi cấu hình, khởi động lại MCP Client để kết nối.
 
-## Hướng dẫn sử dụng nhanh với AI
+> **Lưu ý:** Dự án đã được kiểm thử trên Antigravity. Các AI Agent và MCP Client khác có thể cần điều chỉnh thêm cấu hình tùy theo môi trường sử dụng.
 
-Bạn có thể tương tác tự nhiên với AI Agent bằng các câu hỏi thông dụng:
+## 3. AI Agent Skill
 
-- **Tra cứu bài viết ĐRL mới nhất:**
-  > *"Tìm tất cả các bài có điểm rèn luyện từ ngày 15/11 đến nay và báo cáo cho tôi."*
-- **Tìm bài làm form trực tuyến / trắc nghiệm:**
-  > *"Có hoạt động trực tuyến hoặc bài trắc nghiệm Google Form nào lấy ĐRL còn hạn không?"*
-- **Tìm theo chủ đề chuyên biệt (Workshop, Tình nguyện, Học thuật):**
-  > *"Tổng hợp các workshop hoặc cuộc thi học thuật có cộng ĐRL sắp diễn ra."*
-  > *"Có hoạt động tình nguyện hay dọn vệ sinh nào tính ngày CTXH cuối tuần này không?"*
-- **Cập nhật dữ liệu từ Facebook:**
-  > *"Cào cập nhật các bài viết mới nhất từ tất cả các trang theo dõi."*
-- **Quản lý danh sách Fanpage:**
-  > *"Xem danh sách các Fanpage đang theo dõi."*
-  > *"Thêm trang `https://www.facebook.com/it.tdtu` vào danh sách theo dõi giúp tôi."*
-- **Dọn dẹp bài viết cũ:**
-  > *"Xóa giúp tôi các bài viết cũ trước ngày 01/10/2026."*
+Skill `drl-search` hướng dẫn AI Agent sử dụng MCP Tools để tìm kiếm hoạt động ĐRL và CTXH.
 
----
+Các nhiệm vụ chính:
 
-## Danh sách công cụ (Tools)
+- Phân tích yêu cầu và xác định chủ đề tìm kiếm.
+- Lựa chọn, kết hợp từ khóa theo từng nhóm hoạt động.
+- Kiểm tra dữ liệu và quyết định thời điểm thu thập.
+- Tùy chỉnh điều kiện tìm kiếm và trích xuất bằng `compact`.
+- Kiểm tra thời hạn và tổng hợp kết quả bằng tiếng Việt.
 
-Server tập trung vào 3 công cụ xử lý logic nặng và tự động:
+## 4. Ví dụ sử dụng
 
-| Tool | Tham số | Mô tả |
-| :--- | :--- | :--- |
-| `find_posts` | `keywords?`, `after?`, `before?`, `allPosts?` | Tìm kiếm bài viết theo từ khóa và ngày. Mặc định tra cứu trong `drl_posts.jsonl`. Đặt `allPosts: true` nếu muốn quét toàn bộ bài gốc. |
-| `crawl_posts` | `after?`, `before?` | Cào bài viết mới từ tất cả các trang theo dõi, tự động lọc bài ĐRL vào database riêng. Mặc định lấy 15 ngày gần nhất. |
-| `clean_posts` | `before` | Xóa các bài viết cũ trước mốc ngày chỉ định (YYYY-MM-DD) trên cả 2 file database để giải phóng dung lượng. |
+| Yêu cầu | Mục đích |
+|---|---|
+| "Hôm nay có bài điểm rèn luyện nào mới không?" | Tìm hoạt động ĐRL mới |
+| "Tìm các bài làm form trắc nghiệm online lấy ĐRL còn hạn." | Tìm hoạt động có biểu mẫu đăng ký |
+| "Tuần này có hoạt động tình nguyện, Chủ Nhật Xanh hoặc hiến máu nào không?" | Tìm hoạt động CTXH |
+| "Tìm các workshop hoặc tọa đàm của Khoa CNTT từ đầu tháng đến nay." | Tìm theo chủ đề và thời gian |
+| "Tìm thông báo học bổng trong toàn bộ bài đã thu thập." | Tìm kiếm ngoài phạm vi ĐRL |
 
-> **Quản lý Fanpage (`pages.json`):** Agent có thể trực tiếp đọc và chỉnh sửa file `data/pages.json` bằng công cụ file có sẵn, giúp tiết kiệm token ngữ cảnh của MCP schema.
+> **Lưu ý:** Việc tìm kiếm ngoài phạm vi Điểm Rèn Luyện (qua `find_all_posts`) chưa được kiểm chứng đầy đủ, có thể tốn nhiều token hơn và cần kiểm tra lại kỹ nội dung bài viết gốc.
 
----
+## 5. MCP Tools
 
-## Cấu trúc dự án
+| Tool | Chức năng | Tham số chính |
+|---|---|---|
+| `get_crawl_meta` | Kiểm tra thời điểm thu thập và trạng thái dữ liệu. | Không có |
+| `crawl_posts` | Thu thập bài viết từ danh sách trang Facebook. | `after`, `before` |
+| `find_drl_posts` | Tìm kiếm trong tập bài viết đã lọc theo chủ đề ĐRL. | `after`, `before`, `keywords`, `page`, `hasForm`, `compact`, `compactKeywords`, `limit` |
+| `find_all_posts` | Tìm kiếm trên toàn bộ bài viết đã thu thập. | Tương tự `find_drl_posts` |
+| `clean_posts` | Xóa các bài viết cũ trước ngày chỉ định. | `before` |
+
+**Lưu ý:** `crawl_posts` mặc định thu thập các bài đăng trong 7 ngày gần nhất.
+
+## 6. Cấu trúc thư mục
 
 ```text
 DRL-MCP/
 ├── .agents/
 │   └── skills/
-│       └── fb-drl-tracker/        # AI Skill: Bảng từ khóa, chiến lược truy vấn & trích xuất
-│           └── SKILL.md           # Hướng dẫn chi tiết cho AI Agent
+│       └── drl-search/
+│           └── SKILL.md      # Bộ hướng dẫn (Skill) quy trình tìm kiếm ĐRL cho AI Agent
 ├── data/
-│   ├── pages.json                 # Danh sách các Fanpage theo dõi
-│   ├── posts.jsonl                # Toàn bộ bài viết đã cào được
-│   └── drl_posts.jsonl            # Các bài viết liên quan điểm rèn luyện đã được lọc thô bằng regex keyword
+│   ├── pages.json            # Danh sách các trang Facebook đang theo dõi
+│   ├── posts.jsonl           # Toàn bộ bài viết gốc đã cào về
+│   ├── drl_posts.jsonl       # Các bài viết đã qua bộ lọc từ khóa ĐRL / CTXH
+│   └── crawl_meta.json       # Lưu thời điểm và thống kê của lần cào gần nhất
 ├── src/
-│   ├── pages.ts                   # Đọc/ghi cấu hình danh sách trang
-│   ├── posts.ts                   # Cào fbgql đa luồng, bộ lọc kép ĐRL, tìm kiếm regex
-│   └── server.ts                  # Entry point MCP server (stdio)
-├── package.json
-├── tsconfig.json
-└── README.md
+│   ├── crawler.ts            # Gọi thư viện fbgql cào bài đa luồng và lưu dữ liệu
+│   ├── filter.ts             # Chuẩn hóa tiếng Việt không dấu, tách link và lọc bài ĐRL
+│   ├── search.ts             # Tìm kiếm theo từ khóa và rút gọn nội dung (compact)
+│   ├── server.ts             # Khởi tạo MCP Server và đăng ký 5 công cụ (Tools)
+│   └── storage.ts            # Đọc/ghi các tệp dữ liệu JSON và JSONL
+├── setup.bat                 # Script tự động cài đặt môi trường trên Windows
+├── setup.sh                  # Script tự động cài đặt môi trường trên macOS / Linux
+├── package.json              # Khai báo thông tin dự án và thư viện Node.js
+├── tsconfig.json             # Cấu hình TypeScript
+├── README.md                 # Tài liệu hướng dẫn sử dụng dự án
+└── LICENSE                   # Giấy phép mã nguồn mở MIT
 ```
 
----
+## 7. Hạn chế
 
-## Giấy phép
+- **Phụ thuộc vào Facebook và `fbgql`:** Việc thu thập có thể bị ảnh hưởng khi Facebook thay đổi GraphQL, giới hạn truy cập hoặc yêu cầu đăng nhập. Hiện chỉ hỗ trợ trang Facebook công khai, không hỗ trợ Group kín.
+- **Phân loại theo từ khóa:** Có thể bỏ sót bài viết có thông tin nằm trong hình ảnh, bình luận hoặc cách diễn đạt chưa có trong bộ từ khóa. Cần điều chỉnh thêm
+- **Không đọc nội dung Google Form:** Chỉ trích xuất đường dẫn từ bài đăng, không kiểm tra trạng thái mở/đóng hoặc nội dung biểu mẫu.
+- **Giới hạn của `compact`:** Có thể lược bỏ thông tin quan trọng không khớp với từ khóa trích xuất. Cần điều chỉnh thêm.
 
-MIT
+## License
+
+[MIT](LICENSE)

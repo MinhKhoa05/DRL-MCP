@@ -20,20 +20,18 @@ export function extractPostLinks(message: string): { forms: string[]; external: 
   return { forms, external };
 }
 
-// 1. Động từ ghi nhận ... trong vòng ~80 ký tự ... đối tượng ĐRL / quy chế / hoạt động
-const RECOGNIZE_BENEFIT =
-  /(ghi nhan|cong diem|tinh diem|xem xet ghi nhan)[^\n]{0,80}(diem ren luyen|ren luyen|quy che|quy dinh|ngoai khoa|hoat dong|tinh nguyen)/u;
+// 1. Nhắc trực tiếp "điểm rèn luyện / ĐRL / ngày CTXH", HOẶC "ghi nhận / cộng điểm ... theo quy chế / ngoại khóa / tình nguyện"
+const RECOGNIZE_DRL =
+  /\b(diem ren luyen|drl|ngay ctxh|diem ctxh)\b|(ghi nhan|cong diem|tinh diem)[^\n]{0,80}(quy che|quy dinh|ngoai khoa|hoat dong|tinh nguyen|cong tac xa hoi)/u;
 
-// 2. Quyền lợi ĐRL trực tiếp: "điểm rèn luyện theo quy định / quy chế hiện hành"
-const RECOGNIZE_DRL_DIRECT = /(diem ren luyen|drl)[^\n]{0,40}(theo quy dinh|theo quy che|hien hanh)/u;
-
-// 3. Hoạt động có dấu hiệu cuộc thi, workshop, tọa đàm, tham quan... có mở form/link đăng ký tham gia
+// 2. Hoạt động (cuộc thi, workshop, talkshow, tình nguyện...) có kèm link/form đăng ký
 const RECOGNIZE_EVENT =
-  /(cuoc thi|hoi thi|contest|competition|vong loai|workshop|toa dam|seminar|chuyen de|showcase|co vu|tham quan)/u;
-const RECOGNIZE_ACTION = /(forms\.gle|google form|link dang ky|mo don|dang ky tham gia|tham gia ngay|bom\.so)/u;
+  /(cuoc thi|hoi thi|contest|competition|vong loai|workshop|talkshow|toa dam|hoi thao|seminar|chuyen de|showcase|co vu|tham quan|tinh nguyen|chu nhat xanh|hien mau)/u;
+
+  const RECOGNIZE_ACTION =
+  /(forms\.gle|docs\.google\.com\/forms|google form|link dang ky|bieu mau|mo don|dang ky tham gia|tham gia ngay|quet ma qr|bom\.so|bit\.ly)/u;
 
 export const isDrlPost = (m: string) => {
   const norm = normalize(m);
-  if (RECOGNIZE_BENEFIT.test(norm) || RECOGNIZE_DRL_DIRECT.test(norm)) return true;
-  return RECOGNIZE_EVENT.test(norm) && RECOGNIZE_ACTION.test(norm);
+  return RECOGNIZE_DRL.test(norm) || (RECOGNIZE_EVENT.test(norm) && RECOGNIZE_ACTION.test(norm));
 };

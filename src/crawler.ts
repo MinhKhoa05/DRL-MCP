@@ -62,7 +62,7 @@ export async function crawlPosts(
   const knownDrl = new Set((await readStored(DRL_POSTS_FILE)).map((p) => p.link));
   const scrapedAt = new Date().toISOString();
   const summary: { page: string; newPosts: number; newDrlPosts: number; error?: string }[] = [];
-  const concurrency = Math.max(1, opts.concurrency ?? Number(process.env.CRAWL_CONCURRENCY || 3));
+  const concurrency = Math.max(1, opts.concurrency ?? Number(process.env.CRAWL_CONCURRENCY || 8));
 
   await mkdir(dirname(POSTS_FILE), { recursive: true });
   await mkdir(dirname(DRL_POSTS_FILE), { recursive: true });

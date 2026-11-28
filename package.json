@@ -5,6 +5,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "setup:deps": "pip install git+https://github.com/bsho5/fbgql.git",
     "start": "node --experimental-strip-types src/server.ts"
   },
   "dependencies": {
