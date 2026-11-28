@@ -7,7 +7,7 @@ description: Find posts about student activities earning Training Points (ĐRL) 
 
 ## Overview
 
-Help students find ĐRL / CTXH activities using `drl-mcp` tools (`get_crawl_meta`, `crawl_posts`, `find_posts`).
+Help students find ĐRL / CTXH activities using `drl-mcp` tools (`get_crawl_meta`, `crawl_posts`, `find_drl_posts`).
 **Always reply to the user in Vietnamese.**
 
 ## When to Use
@@ -32,30 +32,31 @@ Help students find ĐRL / CTXH activities using `drl-mcp` tools (`get_crawl_meta
 
 ### Step 2 — Select keywords & search
 
-1. Match user intent to topic group(s) in [Keyword Lookup](#keyword-lookup) and pass the **entire keyword cluster** (use `keywords: []` for general requests).
-2. Call `find_posts({ keywords, after?, before? })`.
-   - If few results, broaden `keywords` (merge groups or use `[]`).
-   - Only call `find_all_posts` if the user explicitly asks to search all raw crawled posts (including non-ĐRL).
+1. Call `find_drl_posts`:
+   - **Recommended:** Always enable `compact: true` to trim noise and save >80% tokens. The server automatically normalizes and extracts core unaccented fields: title, timeline, deadline, audience, benefits (ĐRL/CTXH), requirements, format/location, and forms.
+   - **Dynamic Keywords (`compactKeywords`):** When the user asks for a specific detail (e.g. fees, dress code, speaker), pass extra keywords as an array of strings: `compactKeywords: ["le phi", "dien gia"]`. The server automatically normalizes them to unaccented characters.
+   - If searching for open registrations: pass `hasForm: true`.
+   - If filtering by faculty/club: pass `page: "<faculty or club name>"`.
+   - If filtering by topic: pass `keywords` matching the clusters in [Keyword Lookup](#keyword-lookup).
 
 ### Step 3 — Verify & sort
 
-Inspect every returned post:
-1. **Filter:** Keep real activities matching the topic; drop news, result announcements, and duplicates. Separate knowledge quizzes from opinion surveys.
-2. **Status:** Compare deadline with today → `🟢 Còn hạn` / `🟡 Hết hạn hôm nay` / `🔴 Đã hết hạn` / `⚪ Không rõ hạn`.
+Inspect returned posts:
+1. **Filter:** Keep real activities matching user needs; drop generic announcements or duplicate posts.
+2. **Status:** Compare deadline / event date with today → `🟢 Còn hạn` / `🟡 Hết hạn hôm nay` / `🔴 Đã hết hạn` / `⚪ Không rõ hạn`.
 3. **Sort priority:**
-   - 🟢 Bài viết **mới nhất** (ngày đăng gần nhất, còn hạn).
-   - 🟡 **Hết hạn hôm nay** (cần nhắc gấp để kịp tham gia).
-   - 🟢 Các bài **còn hạn** tiếp theo / ⚪ **Không rõ hạn**.
-   - 🔴 **Đã hết hạn** (gom gọn cuối cùng hoặc tóm tắt ngắn).
-4. Extract only facts explicitly stated in the post.
+   - 🟢 **Newest activities** (recent post date, active).
+   - 🟡 **Expiring today** (urgent reminder to register in time).
+   - 🟢 Other **active activities** / ⚪ **Unclear deadline**.
+   - 🔴 **Expired activities** (group briefly at the end or omit if not requested).
 
 ### Step 4 — Report (in Vietnamese)
 
 **Header:**
-Mở đầu bằng thông báo phạm vi dữ liệu:
-> *"Dưới đây là các hoạt động ĐRL/CTXH được cập nhật trong 7 ngày gần nhất (từ ngày DD/MM/YYYY đến nay):"* (hoặc theo yêu cầu của user).
+Begin with a scope statement:
+> *"Dưới đây là các hoạt động ĐRL/CTXH được cập nhật trong 7 ngày gần nhất (từ ngày DD/MM/YYYY đến nay):"* (or user's timeframe).
 
-**Mỗi hoạt động trình bày gọn gàng (chỉ các thông tin cần thiết nhất):**
+**Format each activity neatly (only key fields):**
 ```markdown
 ### 🟢 <Tên hoạt động>
 - **Tổ chức:** <Khoa / CLB / Page> | **Hình thức:** Online / Offline (địa điểm)
@@ -67,10 +68,8 @@ Mở đầu bằng thông báo phạm vi dữ liệu:
 - **Bài viết gốc:** <URL Facebook nguyên vẹn>
 ```
 
-- Missing fields → ghi `"Chưa công bố"` hoặc bỏ qua dòng nếu không áp dụng.
-
-**Ghi chú cuối (Footer):**
-> *📌 Ghi chú: Dữ liệu được thu thập từ các Fanpage theo dõi trong 7 ngày gần nhất (từ ngày DD/MM/YYYY đến nay). Nếu bạn muốn tìm kiếm xa hơn để tránh bỏ sót các cuộc thi mở đơn sớm, cứ nói để mình cào thêm nhé!*
+**Footer:**
+> *📌 Ghi chú: Dữ liệu được thu thập từ các Fanpage theo dõi trong 7 ngày gần nhất. Nếu bạn muốn tìm kiếm xa hơn để tránh bỏ sót các cuộc thi mở đơn sớm, cứ nói để mình cào thêm nhé!*
 
 ## Keyword Lookup
 

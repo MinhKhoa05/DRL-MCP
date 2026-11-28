@@ -13,9 +13,14 @@ const findSchema = {
   after: date.optional().describe("Lọc bài từ ngày này (YYYY-MM-DD)"),
   before: date.optional().describe("Lọc bài đến ngày này (YYYY-MM-DD)"),
   keywords: z.array(z.string()).optional().describe("Mảng từ khóa cần lọc. Bỏ trống = lấy tất cả bài"),
+  page: z.string().optional().describe("Lọc theo tên Page / Khoa / CLB (ví dụ: 'Khoa Ngoại ngữ', 'KTX', 'FEEE')"),
+  hasForm: z.boolean().optional().describe("Chỉ lấy những bài có mở form đăng ký (Google Forms)"),
+  compact: z.boolean().optional().describe("true = rút gọn thông tin bài viết (tiêu đề + mốc thời gian + quyền lợi + đối tượng + hình thức), giúp tiết kiệm token"),
+  compactKeywords: z.array(z.string()).optional().describe("Mảng từ khóa bổ sung mà Agent muốn trích xuất thêm dòng liên quan (bên cạnh các từ khóa mặc định)"),
+  limit: z.number().optional().describe("Giới hạn số lượng bài trả về"),
 };
 
-const server = new McpServer({ name: "drl-mcp", version: "0.2.0" });
+const server = new McpServer({ name: "drl-mcp", version: "0.3.0" });
 
 server.registerTool(
   "get_crawl_meta",
@@ -55,12 +60,12 @@ server.registerTool(
 server.registerTool(
   "find_drl_posts",
   {
-    description: "Tìm kiếm và lọc bài viết trong danh sách bài ĐÃ LỌC LIÊN QUAN ĐRL (drl_posts.jsonl).",
+    description: "Tìm kiếm và lọc bài viết trong danh sách bài ĐÃ LỌC LIÊN QUAN ĐRL (drl_posts.jsonl). Hỗ trợ lọc theo page, form, compact rút gọn, compactKeywords và limit.",
     inputSchema: findSchema,
   },
-  async ({ after, before, keywords }) => {
+  async (args) => {
     try {
-      return reply(await findDrlPosts({ after, before, keywords }));
+      return reply(await findDrlPosts(args));
     } catch (e) {
       return fail(e);
     }
@@ -74,9 +79,9 @@ server.registerTool(
       "Tìm kiếm trên TOÀN BỘ bài viết gốc đã cào (posts.jsonl, bao gồm cả bài không liên quan ĐRL). Chỉ dùng khi người dùng yêu cầu rõ ràng.",
     inputSchema: findSchema,
   },
-  async ({ after, before, keywords }) => {
+  async (args) => {
     try {
-      return reply(await findAllPosts({ after, before, keywords }));
+      return reply(await findAllPosts(args));
     } catch (e) {
       return fail(e);
     }
