@@ -1,6 +1,7 @@
 {
   "name": "drl-mcp",
   "version": "0.1.0",
+  "description": "MCP hỗ trợ AI Agent tìm kiếm, theo dõi và lọc bài viết từ các Facebook Pages theo từ khóa, phục vụ việc tổng hợp thông tin về Điểm rèn luyện (ĐRL) từ nhiều nguồn.",
   "private": true,
   "type": "module",
   "scripts": {
