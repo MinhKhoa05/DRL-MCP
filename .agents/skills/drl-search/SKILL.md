@@ -1,13 +1,13 @@
 ---
 name: drl-search
-description: Find posts about student activities earning Training Points (ĐRL) or Social Work days (CTXH). Checks freshness via get_crawl_meta, crawls if needed, searches by topic keywords, verifies results, and reports in Vietnamese.
+description: Find posts about student activities earning Training Points (ĐRL) or Social Work days (CTXH). Searches by topic keywords, verifies results, and reports in Vietnamese.
 ---
 
 # DRL Search
 
 ## Overview
 
-Help students find ĐRL / CTXH activities using `drl-mcp` tools (`get_crawl_meta`, `crawl_posts`, `find_drl_posts`).
+Help students find ĐRL / CTXH activities using `drl-mcp` tools (`find_drl_posts`, `crawl_posts`).
 **Always reply to the user in Vietnamese.**
 
 ## When to Use
@@ -18,28 +18,17 @@ Help students find ĐRL / CTXH activities using `drl-mcp` tools (`get_crawl_meta
 
 ## Workflow
 
-### Step 1 — Check freshness & crawl
-
-1. Call `get_crawl_meta({})`.
-2. Decide action (convert any user date to `YYYY-MM-DD`):
-
-| Condition | Action |
-|---|---|
-| User specifies a date range or asks to refresh | `crawl_posts({ after: "<user_after>", before?: "<user_before>" })` (highest priority) |
-| Meta is `null` (no data yet) | `crawl_posts({})` (defaults to 7 days) |
-| `meta.isStale` is `true` (> 30 min old) | `crawl_posts({ after: meta.lastCrawlDate })` |
-| `meta.isStale` is `false` (≤ 30 min) | Skip crawl |
-
-### Step 2 — Select keywords & search
+### Step 1 — Search posts
 
 1. Call `find_drl_posts`:
-   - **Recommended:** Always enable `compact: true` to trim noise and save >80% tokens. The server automatically normalizes and extracts core unaccented fields: title, timeline, deadline, audience, benefits (ĐRL/CTXH), requirements, format/location, and forms.
-   - **Dynamic Keywords (`compactKeywords`):** When the user asks for a specific detail (e.g. fees, dress code, speaker), pass extra keywords as an array of strings: `compactKeywords: ["le phi", "dien gia"]`. The server automatically normalizes them to unaccented characters.
-   - If searching for open registrations: pass `hasForm: true`.
-   - If filtering by faculty/club: pass `page: "<faculty or club name>"`.
-   - If filtering by topic: pass `keywords` matching the clusters in [Keyword Lookup](#keyword-lookup).
+   - Pass `compact: true` by default to save tokens.
+   - Pass `keywords` matching the clusters in [Keyword Lookup](#keyword-lookup).
+   - Pass `compactKeywords: ["le phi", "dien gia"]` if the user asks for specific extra details.
+   - Pass `page: "<faculty or club name>"` if filtering by organizer.
+   - Pass `after` / `before` (`YYYY-MM-DD`) if filtering by date range.
+2. Only call `crawl_posts({ after, before })` if the user explicitly asks to crawl historical posts (> 7 days) or force a refresh.
 
-### Step 3 — Verify & sort
+### Step 2 — Verify & sort
 
 Inspect returned posts:
 1. **Filter:** Keep real activities matching user needs; drop generic announcements or duplicate posts.
@@ -50,7 +39,7 @@ Inspect returned posts:
    - 🟢 Other **active activities** / ⚪ **Unclear deadline**.
    - 🔴 **Expired activities** (group briefly at the end or omit if not requested).
 
-### Step 4 — Report (in Vietnamese)
+### Step 3 — Report (in Vietnamese)
 
 **Header:**
 Begin with a scope statement:
@@ -78,13 +67,11 @@ Begin with a scope statement:
 | **Online / Quiz** | `trực tuyến`, `tìm hiểu`, `trắc nghiệm`, `câu hỏi`, `google form`, `forms.gle`, `online`, `vòng loại` |
 | **Survey** | `khảo sát`, `survey`, `bảng hỏi`, `ý kiến sinh viên` |
 | **Academic / Workshop / Contest** | `học thuật`, `chuyên đề`, `tọa đàm`, `seminar`, `nghiên cứu`, `kiến thức`, `workshop`, `talkshow`, `kỹ năng`, `chia sẻ`, `hướng nghiệp`, `cuộc thi`, `hội thi`, `contest`, `competition` |
-| **Volunteering / CTXH** | `tình nguyện`, `chủ nhật xanh`, `thứ 7 xanh`, `vệ sinh`, `hiến máu` |
+| **Volunteering / CTXH** | `tình nguyện`, `chủ nhật xanh`, `thứ 7 xanh`, `vệ sinh`, `hiến máu`, `quyên góp`, `ủng hộ`, `gây quỹ` |
 | **Arts / Sports** | `thể thao`, `hội thao`, `bóng đá`, `giải chạy`, `văn nghệ`, `cổ vũ` |
 
 ## Red Flags
 
-- Skipping `get_crawl_meta` or searching when `isStale: true` without crawling.
-- Ignoring user's requested start date when crawling.
 - Calling `find_all_posts` without an explicit user request to search all raw posts.
 - Picking only 1–2 keywords instead of the full topic cluster.
 - Trimming the result list to a few items or mixing surveys with ĐRL quizzes.
